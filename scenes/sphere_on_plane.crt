@@ -1,0 +1,33 @@
+background #000000
+
+camera {
+    pos 0,0,-50
+    look_at 0,0,0
+    up 0,-1,0
+    focus 50
+    dim 80x60
+}
+
+light {
+    pos -20,0,0
+    color #AAAAAA
+}
+
+
+sphere {
+    pos 0,0,0
+    radius 10
+    material {
+        color #880000
+        diffuse 3
+    }
+}
+
+plane {
+    pos 0,-10,0
+    normal 0,1,0
+    material {
+        color #008800
+        diffuse 3
+    }
+}

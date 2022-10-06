@@ -1,0 +1,9 @@
+background #005500
+
+camera {
+    pos 0,0,-800
+    look_at 0,0,0
+    up 0,-1,0
+    focus 400
+    dim 800x600
+}

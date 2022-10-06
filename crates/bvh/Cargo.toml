@@ -1,0 +1,8 @@
+[package]
+name = "bvh"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+geom = { path = "../geom" }
+mem = { path = "../mem" }
