@@ -9,8 +9,8 @@ pub struct Mem<'m> {
 pub struct Oom;
 
 impl<'m> Mem<'m> {
-    pub fn new(raw: &'m mut [u8]) -> Mem<'m> {
-        Mem { raw }
+    pub fn with<T>(raw: &mut [u8], f: impl FnOnce(&mut Mem<'_>) -> T) -> T {
+        f(&mut Mem { raw })
     }
 
     pub fn with_scratch<T>(
@@ -19,15 +19,15 @@ impl<'m> Mem<'m> {
         f: impl FnOnce(&mut Mem<'m>, &mut Mem<'_>) -> T,
     ) -> T {
         let raw = mem::take(&mut self.raw);
-        let mid = raw.len() - size;
+        let orig_ptr = raw as *mut [u8] as *mut u8;
+        let orig_len = raw.len();
+        let mid = orig_len - size;
+
         let (mem, scratch) = raw.split_at_mut(mid);
         self.raw = mem;
-        let res = f(self, &mut Mem::new(scratch));
-
-        let data = self.raw.as_mut_ptr();
+        let res = f(self, &mut Mem { raw: scratch });
         let len = self.raw.len() + size;
-        // This makes miri unhappy :(
-        self.raw = unsafe { slice::from_raw_parts_mut(data, len) };
+        self.raw = unsafe { slice::from_raw_parts_mut(orig_ptr.add(orig_len - len), len) };
         res
     }
 
@@ -99,18 +99,18 @@ impl<'m> Mem<'m> {
 #[test]
 fn test_scratch() {
     let mut buf = [0u8; 4];
-    let mut mem = Mem::new(&mut buf);
-    let x = mem.alloc(0u8).unwrap();
-    let y = mem.with_scratch(2, |mem, scratch| {
-        let y = mem.alloc(1u8).unwrap();
-        let z = scratch.alloc(2u8).unwrap();
-        assert_eq!((*x, *y, *z), (0, 1, 2));
-        assert!(mem.alloc(0u8).is_err());
-        y // Returning z here fails.
+    Mem::with(&mut buf, |mem| {
+        let x = mem.alloc(0u8).unwrap();
+        let y = mem.with_scratch(2, |mem, scratch| {
+            let y = mem.alloc(1u8).unwrap();
+            let z = scratch.alloc(2u8).unwrap();
+            assert_eq!((*x, *y, *z), (0, 1, 2));
+            assert!(mem.alloc(0u8).is_err());
+            y // Returning z here fails.
+        });
+        let z = mem.alloc(3u8).unwrap();
+        assert_eq!((*x, *y, *z), (0, 1, 3));
     });
-    let z = mem.alloc(3u8).unwrap();
-    assert_eq!((*x, *y, *z), (0, 1, 3));
     assert_eq!(buf, [0, 1, 3, 0]);
     // Will fail to compile.
-    // assert_eq!(*x, 0);
 }

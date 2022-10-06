@@ -33,13 +33,21 @@ pub fn render<'a>(
     in_parallel: &ThreadPool<'_>,
     buf: &mut rgb::Buf<'_>,
 ) -> Result<(), Error<'a>> {
-    let mut mem = Mem::new(mem);
-    let scene = scene::Scene::parse(&mut mem, crt).map_err(ErrorRepr::ParseSceneError)?;
+    Mem::with(mem, |mem| render_impl(crt, mem, in_parallel, buf))
+}
+
+fn render_impl<'a, 'm>(
+    crt: &'a str,
+    mem: &mut Mem<'m>,
+    in_parallel: &ThreadPool<'_>,
+    buf: &mut rgb::Buf<'_>,
+) -> Result<(), Error<'a>> {
+    let scene = scene::Scene::parse(mem, crt).map_err(ErrorRepr::ParseSceneError)?;
     let bhvs =
         mem.alloc_array_default(scene.meshes.len()).map_err(ErrorRepr::BhvConstructionError)?;
     for (i, m) in scene.meshes.iter().enumerate() {
         let mut bbs = m.iter().map(triangle_bounding_box);
-        bhvs[i] = Bvh::build(&mut mem, &mut bbs).map_err(ErrorRepr::BhvConstructionError)?;
+        bhvs[i] = Bvh::build(mem, &mut bbs).map_err(ErrorRepr::BhvConstructionError)?;
     }
 
     let camera = Camera::new(&scene.camera);
