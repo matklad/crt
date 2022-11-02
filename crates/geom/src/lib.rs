@@ -165,11 +165,24 @@ impl Ray {
     }
 }
 
+#[cfg(target_arch="x64_64")]
 fn sqrt(mut v: f64) -> f64 {
     unsafe {
         core::arch::asm!(
             "vsqrtsd {v}, {v}, {v}",
             v = inout(xmm_reg) v,
+        );
+    }
+    v
+}
+
+
+#[cfg(target_arch="aarch64")]
+fn sqrt(mut v: f64) -> f64 {
+    unsafe {
+        core::arch::asm!(
+            "fsqrt d3, d3",
+            inout("d3") v,
         );
     }
     v
