@@ -165,7 +165,7 @@ impl Ray {
     }
 }
 
-#[cfg(target_arch="x64_64")]
+#[cfg(target_arch="x86_64")]
 fn sqrt(mut v: f64) -> f64 {
     unsafe {
         core::arch::asm!(
